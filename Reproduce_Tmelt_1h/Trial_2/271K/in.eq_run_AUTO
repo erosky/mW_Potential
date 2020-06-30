@@ -1,0 +1,78 @@
+# import atom configuration from ../
+# set velocities
+# equilibrate for 1 ns
+# run NPT with 10fs time steps
+# Nose-Hoover thermostat and barostat with relaxation time 1 and 2.5 ps
+# pressure = 0
+# run for 10 ns
+
+
+variable            NAME string Tmelt_271K_AUTO
+variable            TEMP string 271
+variable            PRES string 0
+variable            TDAMP string 1000.0
+variable            PDAMP string 2500.0
+
+# Real units, atomic atom style (no bonded interactions)
+#
+units               real
+atom_style          atomic
+log                 log.eq_${NAME}
+
+# Import phase coexistance setup
+#
+read_data           ../data.ice_water
+
+# Define potential
+#
+pair_style 	    sw
+pair_coeff	    * * ../mW_real.sw mW
+
+# Reset velocity/set timestep
+#
+velocity	    all create ${TEMP} 120248 rot yes dist gaussian
+timestep	    10.0
+
+# Define output
+#
+compute	            1 all msd
+compute             2 all orientorder/atom nnn NULL degrees 2 4 12
+thermo              1000
+thermo_style        custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+#
+neigh_modify        delay 0 every 1 check yes
+
+# Set fixes
+#
+fix                 1 all momentum 10 linear 1 1 1 rescale
+fix                 2 all nve
+fix                 3 all temp/csvr ${TEMP} ${TEMP} 500.0 928237
+fix                 4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+
+# Run very short equilibration
+#
+dump		    1 all atom 50 eq.${NAME}.dump
+run	            500
+
+reset_timestep      0 
+undump              1
+unfix               2
+unfix               3
+unfix               4
+
+################################################
+#######         Run Simulation         #########
+################################################  
+
+log                 log.run_${NAME}
+
+# Set production fixes - Nose/Hoover
+#
+fix                 2 all npt temp ${TEMP} ${TEMP} ${TDAMP} iso ${PRES} ${PRES} ${PDAMP}   
+
+# Run 10ns simulation
+dump		    1 all custom 1000 prod.${NAME}.dump id type x y z vx vy vz c_2[*]
+run                 1000000
+

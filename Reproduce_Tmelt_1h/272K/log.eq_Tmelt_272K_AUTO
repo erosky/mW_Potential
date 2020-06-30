@@ -1,0 +1,111 @@
+
+# Import phase coexistance setup
+#
+read_data           ../data.ice_water
+  orthogonal box = (-0.389984 0.10996 -0.316703) to (22.6907 45.7542 21.4375)
+  2 by 5 by 1 MPI processor grid
+  reading atoms ...
+  720 atoms
+  read_data CPU = 0.00096941 secs
+
+# Define potential
+#
+pair_style 	    sw
+pair_coeff	    * * ../mW_real.sw mW
+Reading potential file ../mW_real.sw with DATE: 2019-02-27
+
+# Reset velocity/set timestep
+#
+velocity	    all create ${TEMP} 120598 rot yes dist gaussian
+velocity	    all create 272 120598 rot yes dist gaussian
+timestep	    10.0
+
+# Define output
+#
+compute	            1 all msd
+compute             2 all orientorder/atom nnn NULL degrees 2 4 12
+thermo              1000
+thermo_style        custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+#
+neigh_modify        delay 0 every 1 check yes
+
+# Set fixes
+#
+fix                 1 all momentum 10 linear 1 1 1 rescale
+fix                 2 all nve
+fix                 3 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix                 3 all temp/csvr 272 ${TEMP} 500.0 928347
+fix                 3 all temp/csvr 272 272 500.0 928347
+fix                 4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+fix                 4 all press/berendsen iso 0 ${PRES} 1000.0 modulus 20000
+fix                 4 all press/berendsen iso 0 0 1000.0 modulus 20000
+
+# Run very short equilibration
+#
+dump		    1 all atom 50 eq.${NAME}.dump
+dump		    1 all atom 50 eq.Tmelt_272K_AUTO.dump
+run	            500
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 6.3065
+  ghost atom cutoff = 6.3065
+  binsize = 3.15325, bins = 8 15 7
+  2 neighbor lists, perpetual/occasional/extra = 1 1 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) compute orientorder/atom, occasional, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+Per MPI rank memory allocation (min/avg/max) = 4.072 | 4.072 | 4.073 Mbytes
+Step Temp Press Volume TotEng KinEng PotEng c_1[4] 
+       0          272   -1174.9796    22918.075   -7099.3239    582.95106    -7682.275            0 
+     500    268.35934   -54.122994    21851.704   -7131.9438    575.14839   -7707.0922    5.1095888 
+Loop time of 0.183267 on 10 procs for 500 steps with 720 atoms
+
+Performance: 2357.222 ns/day, 0.010 hours/ns, 2728.266 timesteps/s
+97.2% CPU use with 10 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.078184   | 0.12471    | 0.15407    |   6.5 | 68.05
+Neigh   | 0.0051014  | 0.0071614  | 0.0082011  |   1.1 |  3.91
+Comm    | 0.011976   | 0.03721    | 0.079945   |  10.6 | 20.30
+Output  | 0.00093746 | 0.0011085  | 0.0012536  |   0.3 |  0.60
+Modify  | 0.0058379  | 0.011136   | 0.017741   |   4.8 |  6.08
+Other   |            | 0.001942   |            |       |  1.06
+
+Nlocal:    72 ave 76 max 67 min
+Histogram: 1 1 1 0 0 3 1 0 1 2
+Nghost:    526.8 ave 538 max 511 min
+Histogram: 1 2 0 0 0 1 0 2 3 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 10 0 0 0 0 0 0 0 0 0
+FullNghs:  2370.4 ave 2520 max 2191 min
+Histogram: 1 0 2 0 1 2 1 1 0 2
+
+Total # of neighbors = 23704
+Ave neighs/atom = 32.9222
+Neighbor list builds = 59
+Dangerous builds = 0
+
+reset_timestep      0
+undump              1
+unfix               2
+unfix               3
+unfix               4
+
+################################################
+#######         Run Simulation         #########
+################################################
+
+log                 log.run_${NAME}
+log                 log.run_Tmelt_272K_AUTO
