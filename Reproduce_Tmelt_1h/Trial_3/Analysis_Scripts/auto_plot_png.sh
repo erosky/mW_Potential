@@ -30,7 +30,7 @@ gnuplot -e "set terminal png; \
             set key outside ; \
             set key right top ; \
             set style data lines; \
-            plot for [i=266:274] 'run_Tmelt_'.i.'K_AUTO.dat' using 1:7 title ''.i.'K'; "
+            plot for [i=268:275] 'run_Tmelt_'.i.'K_AUTO.dat' using 1:7 title ''.i.'K'; "
 
 # Plot and save Total Energy
 gnuplot -e "set terminal png; \
@@ -40,7 +40,7 @@ gnuplot -e "set terminal png; \
             set key outside ; \
             set key right top ; \
             set style data lines; \
-            plot for [i=266:274] 'run_Tmelt_'.i.'K_AUTO.dat' using 1:5 title ''.i.'K'" > ${WORKING_DIR}/Tmelt_TE_all.png
+            plot for [i=268:275] 'run_Tmelt_'.i.'K_AUTO.dat' using 1:5 title ''.i.'K'" > ${WORKING_DIR}/Tmelt_TE_all.png
 
 # Plot and save Mean square disp
 gnuplot -e "set terminal png; \
@@ -50,7 +50,7 @@ gnuplot -e "set terminal png; \
             set key outside ; \
             set key right top ; \
             set style data lines; \
-            plot for [i=266:274] 'run_Tmelt_'.i.'K_AUTO.dat' using 1:8 title ''.i.'K'" > ${WORKING_DIR}/Tmelt_MSD_all.png
+            plot for [i=268:275] 'run_Tmelt_'.i.'K_AUTO.dat' using 1:8 title ''.i.'K'" > ${WORKING_DIR}/Tmelt_MSD_all.png
 
 # Plot and save Volume
 gnuplot -e "set terminal png; \
@@ -60,7 +60,7 @@ gnuplot -e "set terminal png; \
             set key outside ; \
             set key right top ; \
             set style data lines; \
-            plot for [i=266:274] 'run_Tmelt_'.i.'K_AUTO.dat' using 1:4 title ''.i.'K'" > ${WORKING_DIR}/Tmelt_VOL_all.png
+            plot for [i=268:275] 'run_Tmelt_'.i.'K_AUTO.dat' using 1:4 title ''.i.'K'" > ${WORKING_DIR}/Tmelt_VOL_all.png
 
 
 for temp in "${TEMPERATURES[@]}"; do
