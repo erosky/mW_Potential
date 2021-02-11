@@ -1,0 +1,16 @@
+LAMMPS (12 Dec 2018)
+# mW_liquid.in
+# Basic simulation to develop the mW model from SW Potential
+
+variable 	simname index mW_bcc_test01_eq
+variable	TEMP string 298.0
+variable        PRES string 1
+
+clear
+units		metal
+dimension	3
+boundary	p p p
+atom_style	atomic
+
+log 		${simname}.log
+log 		mW_bcc_test01_eq.log

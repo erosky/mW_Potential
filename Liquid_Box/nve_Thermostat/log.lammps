@@ -1,0 +1,13 @@
+LAMMPS (12 Dec 2018)
+# mW_liquid.in
+# Basic simulation to develop the mW model from SW Potential
+variable 	simname index testing
+
+clear
+units		metal
+dimension	3
+boundary	p p p
+atom_style	atomic
+
+log 		${simname}.log
+log 		testing.log

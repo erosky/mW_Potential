@@ -1,0 +1,118 @@
+# GAME PLAN
+# fill box with randomly distributed atoms
+# pressure should be at 0
+# equilibrate at 280K for 1ns
+# verify equilibrium by lookig at potential energy
+# cut out half the atoms
+# fill in void with ice data
+# remove overlaps
+# hold ice fixed while equilibrating water for 1ns at 280K
+
+
+
+variable            NAME string setup_atoms_280K_01
+variable            TEMP string 280
+variable            PRES string 0
+variable            TDAMP string 1000.0
+variable            PDAMP string 2500.0
+
+
+## Ice Seed volumetric data:
+#
+# -1.0216408247826259e-01 2.4920164082478134e+01 xlo xhi
+# -1.2770510309773897e-01 3.1150205103097296e+01 ylo yhi
+# -1.2770510309773897e-01 3.1150205103097296e+01 zlo zhi
+#
+variable            ICE_XLO equal -1.0216408247826259e-01
+variable            ICE_XHI equal 2.4920164082478134e+01
+variable            ICE_LO equal -1.2770510309773897e-01
+variable            ICE_HI equal 3.1150205103097296e+01
+variable            ICE_WIDTH equal v_ICE_HI-v_ICE_LO
+variable            ICE_LEN equal v_ICE_XHI-v_ICE_XLO
+
+## Set Simulation Box Size
+#
+variable            WIDTH equal v_ICE_WIDTH
+variable            LEN equal v_ICE_LEN
+
+## Real units, atomic atom style (no bonded interactions)
+#
+units               real
+atom_style          atomic
+
+
+################################################
+#######    Equilibrate Liquid Water    #########
+################################################      
+
+log                 log.${NAME}.eq_water
+
+# Create simulation box of size ~50 x 30 x 30 Angstrom
+#
+lattice	            sc 1
+region 	            all block 0 ${LEN} 0 ${WIDTH} 0 ${WIDTH} units box
+create_box          1 all 
+
+# fill box with randomly distributed atoms
+#
+create_atoms        1 random 782 63782 all
+mass                1 18.015
+
+# Define potential
+#
+pair_style          sw
+pair_coeff          * * mW_real.sw mW
+
+# Run minimization
+#
+minimize            1.0e-8 1.0e-8 10000 1000
+
+# Add velocity/set timestep
+#
+velocity            all create ${TEMP} 120598 rot yes dist gaussian
+timestep            10.0
+
+# Define output
+#
+compute	            1 all msd
+thermo	            5000
+thermo_style        custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+#
+neigh_modify        delay 0 every 1 check yes
+
+# Set fixes
+#
+fix                 1 all momentum 10 linear 1 1 1 rescale
+fix                 2 all nve
+fix                 3 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix                 4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+
+# Run 1 ns equilibration
+#
+dump                1 all custom 5000 eq.water.${NAME}.dump id type x y z vx vy vz
+run                 100000
+
+undump              1
+unfix               2
+unfix               3
+unfix               4
+
+
+################################################
+#######         Run Simulation         #########
+################################################  
+
+reset_timestep      0
+log                 log.run_${NAME}
+
+# Set production fixes - Nose/Hoover
+#
+fix                 2 all npt temp ${TEMP} ${TEMP} ${TDAMP} iso ${PRES} ${PRES} ${PDAMP}   
+compute             2 all orientorder/atom nnn NULL
+
+# Run 1ns simulation
+dump		    1 all custom 10000 prod.${NAME}.dump id type x y z vx vy vz c_2[*]
+dump                2 all image 2000 water_order.*.ppm type type
+run                 100000

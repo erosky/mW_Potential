@@ -1,0 +1,62 @@
+LAMMPS (12 Dec 2018)
+# import atom configuration from ../
+# set velocities to 300K (should be superheated ice in theory)
+# equilibrate for 1 ns
+# run NPT with 10fs time steps
+# Nose-Hoover thermostat and barostat with relaxation time 1 and 2.5 ps
+# pressure = 0
+# run for 10 ns
+
+
+variable            NAME string ice_order_270K_00
+variable            TEMP string 270
+variable            PRES string 0
+variable            TDAMP string 1000.0
+variable            PDAMP string 2500.0
+
+# Real units, atomic atom style (no bonded interactions)
+#
+units               real
+atom_style          atomic
+
+# Import ice box setup as initial positions and velocities
+#
+read_data           data.ice_box
+  orthogonal box = (-0.102164 -0.127705 -0.127705) to (24.9202 31.1502 31.1502)
+  2 by 2 by 3 MPI processor grid
+  reading atoms ...
+  800 atoms
+  reading velocities ...
+  800 velocities
+
+# Define potential
+#
+pair_style 	    sw
+pair_coeff	    * * mW_real.sw mW
+Reading potential file mW_real.sw with DATE: 2019-02-27
+
+# Set timestep
+#
+timestep	    10.0
+
+# Define output
+#
+compute	            1 all msd
+compute             2 all orientorder/atom nnn NULL
+thermo              1000
+thermo_style        custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+#
+neigh_modify        delay 0 every 1 check yes
+
+# Set fixes
+#
+fix                 1 all momentum 10 linear 1 1 1 rescale
+
+################################################
+#######         Run Simulation         #########
+################################################
+
+log                 log.run_${NAME}
+log                 log.run_ice_order_270K_00

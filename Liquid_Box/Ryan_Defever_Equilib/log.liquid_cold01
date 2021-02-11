@@ -1,0 +1,77 @@
+
+# Create simulation box and atoms
+lattice		    sc 1
+Lattice spacing in x,y,z = 1 1 1
+region 		    all block 0 50 0 50 0 50 units box
+create_box 	    1 all
+Created orthogonal box = (0 0 0) to (50 50 50)
+  2 by 2 by 3 MPI processor grid
+
+create_atoms	1 random 4096 63782 all
+Created 4096 atoms
+  Time spent = 0.000662088 secs
+
+mass		    1 18.015
+
+# Define potential
+
+pair_style 	    sw
+pair_coeff	    * * mW_real.sw mW
+Reading potential file mW_real.sw with DATE: 2019-02-27
+
+# Run minimization and output files
+
+minimize 	    1.0e-8 1.0e-8 10000 1000
+WARNING: Using 'neigh_modify every 1 delay 0 check yes' setting during minimization (../min.cpp:168)
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 6.3065
+  ghost atom cutoff = 6.3065
+  binsize = 3.15325, bins = 16 16 16
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.22 | 4.223 | 4.225 Mbytes
+Step Temp E_pair E_mol TotEng Press 
+       0            0    4841787.4            0    4841787.4    3675171.9 
+     725            0   -46202.461            0   -46202.461   -1069.5173 
+Loop time of 2.00026 on 12 procs for 725 steps with 4096 atoms
+
+97.9% CPU use with 12 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = max force evaluations
+  Energy initial, next-to-last, final = 
+          4841787.3909     -46202.2085553     -46202.4608113
+  Force two-norm initial, final = 1.26053e+08 3.86447
+  Force max component initial, final = 6.83465e+07 1.39592
+  Final line search alpha, max atom move = 0.0669398 0.0934428
+  Iterations, force evaluations = 725 1000
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 1.4537     | 1.5858     | 1.7161     |   6.5 | 79.28
+Neigh   | 0.028343   | 0.030765   | 0.038464   |   1.4 |  1.54
+Comm    | 0.21746    | 0.34745    | 0.48017    |  14.1 | 17.37
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.03622    |            |       |  1.81
+
+Nlocal:    341.333 ave 349 max 332 min
+Histogram: 1 1 0 1 2 2 1 2 1 1
+Nghost:    1020.92 ave 1041 max 998 min
+Histogram: 3 0 0 1 2 0 1 2 1 2
+Neighs:    0 ave 0 max 0 min
+Histogram: 12 0 0 0 0 0 0 0 0 0
+FullNghs:  11030.2 ave 11461 max 10514 min
+Histogram: 1 1 0 2 1 0 3 2 1 1
+
+Total # of neighbors = 132362
+Ave neighs/atom = 32.3149
+Neighbor list builds = 43
+Dangerous builds = 0

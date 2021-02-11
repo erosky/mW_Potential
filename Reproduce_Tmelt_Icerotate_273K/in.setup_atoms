@@ -1,0 +1,141 @@
+# GAME PLAN
+# fill box with randomly distributed atoms
+# pressure should be at 0
+# equilibrate at 280K for 1ns
+# verify equilibrium by lookig at potential energy
+# cut out half the atoms
+# fill in void with ice data
+# remove overlaps
+# hold ice fixed while equilibrating water for 1ns at 280K
+
+
+
+variable            NAME string setup_atoms_280K_00
+variable            TEMP string 280
+variable            PRES string 0
+variable            TCOUPL string 5000.0
+variable            PCOUPL string 10000.0
+
+
+## Ice Seed volumetric data:
+#
+# -9.9254971955060611e-02 2.4917254971955060e+01 xlo xhi
+# -1.2406871494366278e-01 3.1146568714943733e+01 ylo yhi
+# -1.2406871494366278e-01 3.1146568714943733e+01 zlo zhi
+#
+variable            ICE_XLO equal -9.9254971955060611e-02
+variable            ICE_XHI equal 2.4917254971955060e+01
+variable            ICE_LO equal -1.2406871494366278e-01
+variable            ICE_HI equal 3.1146568714943733e+01
+variable            ICE_WIDTH equal v_ICE_HI-v_ICE_LO
+variable            ICE_LEN equal v_ICE_XHI-v_ICE_XLO
+
+## Set Simulation Box Size
+#
+variable            WIDTH equal v_ICE_WIDTH
+variable            LEN equal 2.0*v_ICE_LEN
+
+## Real units, atomic atom style (no bonded interactions)
+#
+units               real
+atom_style          atomic
+
+
+################################################
+#######    Equilibrate Liquid Water    #########
+################################################      
+
+log                 log.${NAME}.eq_water
+
+# Create simulation box of size ~50 x 30 x 30 Angstrom
+#
+lattice	            sc 1
+region 	            all block 0 ${LEN} 0 ${WIDTH} 0 ${WIDTH} units box
+create_box          1 all 
+
+# fill box with randomly distributed atoms
+#
+create_atoms        1 random 1565 63782 all
+mass                1 18.015
+group               water region all
+
+# Define potential
+#
+pair_style          sw
+pair_coeff          * * mW_real.sw mW
+
+# Run minimization
+#
+minimize            1.0e-8 1.0e-8 10000 1000
+
+# Add velocity/set timestep
+#
+velocity            all create ${TEMP} 120598 rot yes dist gaussian
+timestep            10.0
+
+# Define output
+#
+compute	            1 all msd
+thermo	            50
+thermo_style        custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+#
+neigh_modify        delay 0 every 1 check yes
+
+# Set fixes
+#
+fix                 1 all momentum 10 linear 1 1 1 rescale
+fix                 2 all nve
+fix                 3 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix                 4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+
+# Run 1 ns equilibration
+#
+dump                1 all atom 1000 eq.water.${NAME}.dump
+run                 100000
+
+undump              1
+reset_timestep      0 
+#unfix               2
+#unfix               3
+#unfix               4
+
+
+################################################
+#######           Insert Ice           #########
+################################################  
+
+log                 log.${NAME}.eq_all
+
+# Delete water molecules from region where ice will be placed
+#
+region              ice block 0 ${ICE_LEN} 0 ${ICE_WIDTH} 0 ${ICE_WIDTH}
+delete_atoms        region ice compress yes
+
+# Load Ice from data file
+#
+variable            XSHIFT equal -v_ICE_XLO
+variable            SHIFT equal -v_ICE_LO
+read_data           data.ice_box add append shift ${XSHIFT} ${SHIFT} ${SHIFT} group ice
+
+# Delete water and ice atoms that are overlapping
+#
+delete_atoms        overlap 2.4 water ice
+
+# Fix ice atoms in place
+# 
+velocity            ice set 0.0 0.0 0.0
+fix                 5 ice setforce 0.0 0.0 0.0
+
+# Run 0.5 ns equilibration of water
+#
+dump                1 all atom 1000 eq.all.${NAME}.dump
+run                 50000
+
+# Create data file for import to other simulations
+#
+write_data          data.ice_water
+
+
+

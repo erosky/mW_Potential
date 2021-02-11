@@ -1,0 +1,63 @@
+Measuring the orientational order parameter of water and ice using LAMMPS command "compute orientorder/atom"
+The compute returns the order parameter designed by Steinhardt et. al. using spherical harmonics.
+A value is computed for each atom at each timestep. The bash script titled "average_order_param.sh" will average over all order parameter values computed throughout the entire simulation, summing over all atoms and all timesteps to arrive at a single average value, and compute the standard deviation.
+
+After trying several orders Q_l of the order parameter for a simulation of liquid water at 280K and of solid ice at 270K, each the same box size, I saw that the Q4 and Q12 were distinctly different between the liquid and solid within their standard deviations. Q12 is a slightly more distinctively different than Q4. I do intend to look at the tetrahedral order parameter as well, but for the purposes of distinguishing between ice and water in simulation, Q12 seems to do the job.
+
+TECHNICAL NOTE: I had to set the included nearest neighbors to be all atoms within the cutoff distance of 2.3925 Angstroms, which is the sigma value of the two body potential of mW model. In other words, the radius of interaction. I do this by setting "nnn NULL" as described in LAMMPS documentation.
+The default is 12, and I'm quite sure that there are much fewer than 12 atoms within 2.3925 Angstroms of each atom. Therefore, I think that using 12 neighbors caused the order parameter compute to return 0.
+I tried setting to 10, and saw that mostly 0's still but a few more values than for 12.
+Thanks to Axel Kohlmeyer for suggesting this solution at the LAMMPS conference.
+
+Water:
+
+    value    std dev
+q4  0.260196 0.0685861 *
+q6  0.30049 0.059787
+q8  0.34053 0.0542316
+q10 0.319112 0.0508337
+q12 0.288448 0.0480882
+
+
+Ice:
+
+    value    std dev
+q4  0.389543 0.0476014 *
+q6  0.247251 0.0682612
+q8  0.372271 0.0408377
+q10 0.391394 0.0615934
+q12 0.417995 0.0476861 *
+
+
+I set up a box 49 x 31 x 31 Angstrom in dimension. Half the box is occuped by ice and half by water.
+Procedure:
+(in.setup_ice)
+- Set up 25 x 30 x 30 diamond (ice) lattice of water molecules
+- Equilibrate for 1 ns (nve, temp/csvr, press/berendsen) 270K and 0.0 bar
+- Save atom configuration
+
+(in.setup_atoms)
+- Set up ~50 x 30 x 30 box of randomly place atoms
+- energy minimize to remove overlaps
+- Equilibrate for 1 ns at 280K
+- Delete atoms from half of the box
+- Load ice atom configurations into the empty half
+- Remove overlapping atoms (delete any atoms where one from each group ice/water are within 2.5 A proximity of eachother)
+- Fix ice atoms in place to prevent melting
+- Allow water atoms to equilibrate at 280K
+- Save atom configuration
+
+
+Starting with this half/half atom configuration, I run npt simulation at 9 temperatures ranging from 266 to 274
+
+I found that =< 269K the system froze over
+temperatures >= 270K melted
+
+Which would indicate that melting temperature of mW model is 270K
+This is 4K lower than reported by Molinero for mW model.
+
+Could this be related tot he fact that I equilibrated ice crystal at 270K?
+
+In "Reproduce_Tmelt_Icerotate" I try this again but rotate diamond lattice about y axis, so different face is exposed to the liquid atoms.
+
+

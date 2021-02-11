@@ -1,0 +1,181 @@
+
+# Create simulation box of size ~50 x 30 x 30 Angstrom
+#
+lattice	            sc 1
+Lattice spacing in x,y,z = 1 1 1
+region 	            all block 0 ${LEN} 0 ${WIDTH} 0 ${WIDTH} units box
+region 	            all block 0 25.0223281649564 0 ${WIDTH} 0 ${WIDTH} units box
+region 	            all block 0 25.0223281649564 0 31.277910206195 0 ${WIDTH} units box
+region 	            all block 0 25.0223281649564 0 31.277910206195 0 31.277910206195 units box
+create_box          1 all
+Created orthogonal box = (0 0 0) to (25.0223 31.2779 31.2779)
+  2 by 2 by 3 MPI processor grid
+
+# fill box with randomly distributed atoms
+#
+create_atoms        1 random 782 63782 all
+Created 782 atoms
+  Time spent = 0.000404596 secs
+mass                1 18.015
+
+# Define potential
+#
+pair_style          sw
+pair_coeff          * * mW_real.sw mW
+Reading potential file mW_real.sw with DATE: 2019-02-27
+
+# Run minimization
+#
+minimize            1.0e-8 1.0e-8 10000 1000
+WARNING: Using 'neigh_modify every 1 delay 0 check yes' setting during minimization (../min.cpp:168)
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 6.3065
+  ghost atom cutoff = 6.3065
+  binsize = 3.15325, bins = 8 10 10
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.188 | 4.188 | 4.188 Mbytes
+Step Temp E_pair E_mol TotEng Press 
+       0            0    342236.67            0    342236.67    1391068.2 
+     475            0   -8805.4361            0   -8805.4361   -1661.4468 
+Loop time of 0.282303 on 12 procs for 475 steps with 782 atoms
+
+98.7% CPU use with 12 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+         342236.674737     -8805.43606459     -8805.43614963
+  Force two-norm initial, final = 3.57626e+06 0.0622477
+  Force max component initial, final = 2.45873e+06 0.00746309
+  Final line search alpha, max atom move = 1 0.00746309
+  Iterations, force evaluations = 475 740
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.14839    | 0.19876    | 0.23617    |   6.8 | 70.41
+Neigh   | 0.0025027  | 0.0028688  | 0.0032871  |   0.4 |  1.02
+Comm    | 0.028767   | 0.06331    | 0.11344    |  12.2 | 22.43
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.01737    |            |       |  6.15
+
+Nlocal:    65.1667 ave 72 max 56 min
+Histogram: 1 0 2 2 0 1 0 1 3 2
+Nghost:    456.167 ave 463 max 445 min
+Histogram: 1 0 0 1 2 2 0 2 2 2
+Neighs:    0 ave 0 max 0 min
+Histogram: 12 0 0 0 0 0 0 0 0 0
+FullNghs:  2061.17 ave 2342 max 1725 min
+Histogram: 2 0 3 0 0 1 0 0 5 1
+
+Total # of neighbors = 24734
+Ave neighs/atom = 31.6292
+Neighbor list builds = 21
+Dangerous builds = 0
+
+# Add velocity/set timestep
+#
+velocity            all create ${TEMP} 120598 rot yes dist gaussian
+velocity            all create 280 120598 rot yes dist gaussian
+timestep            10.0
+
+# Define output
+#
+compute	            1 all msd
+thermo	            5000
+thermo_style        custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+#
+neigh_modify        delay 0 every 1 check yes
+
+# Set fixes
+#
+fix                 1 all momentum 10 linear 1 1 1 rescale
+fix                 2 all nve
+fix                 3 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix                 3 all temp/csvr 280 ${TEMP} 500.0 928347
+fix                 3 all temp/csvr 280 280 500.0 928347
+fix                 4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+fix                 4 all press/berendsen iso 0 ${PRES} 1000.0 modulus 20000
+fix                 4 all press/berendsen iso 0 0 1000.0 modulus 20000
+
+# Run 1 ns equilibration
+#
+dump                1 all custom 5000 eq.water.${NAME}.dump id type x y z vx vy vz
+dump                1 all custom 5000 eq.water.setup_atoms_280K_01.dump id type x y z vx vy vz
+run                 100000
+Per MPI rank memory allocation (min/avg/max) = 3.438 | 3.438 | 3.438 Mbytes
+Step Temp Press Volume TotEng KinEng PotEng c_1[4] 
+     475          280   -444.21567    24479.535   -8153.5926    651.84354   -8805.4361            0 
+    5000     279.4108   -111.53713    23346.363   -7274.2784    650.47188   -7924.7502     128.7891 
+   10000    273.57923   -325.11112    23294.001   -7330.9132    636.89592   -7967.8091    267.13568 
+   15000    270.90607   -75.966289    23215.091   -7316.5474    630.67277   -7947.2202    412.52548 
+   20000    286.88295   -163.99039    23556.699   -7263.9594    667.86714   -7931.8265    573.65155 
+   25000    273.68083   -245.21696    23495.457   -7298.3874    637.13243   -7935.5198    727.66694 
+   30000    274.26813     49.45622    23457.991   -7268.9176    638.49968   -7907.4173    887.01617 
+   35000    287.22801   -22.197281    23414.636   -7305.2937    668.67043   -7973.9641    1014.7654 
+   40000    284.92861    163.62223    23366.221   -7305.8804     663.3174   -7969.1978    1149.7752 
+   45000    266.82695     99.21378    23464.288   -7288.7283    621.17651   -7909.9048    1312.1452 
+   50000    278.82177    240.08038    23295.799   -7231.1197     649.1006   -7880.2203    1433.7969 
+   55000    296.70697   -124.52679    23361.399   -7257.7536    690.73758   -7948.4912    1542.5237 
+   60000    272.84838   -202.75092    23338.346   -7293.9214    635.19448   -7929.1159    1680.6191 
+   65000    278.55093    123.98705    23406.284   -7288.5444    648.47009   -7937.0145    1797.0847 
+   70000    284.06461    448.22006    23296.683   -7296.2708      661.306   -7957.5768    1910.7473 
+   75000    265.82706    394.73446    23356.046   -7325.8205    618.84875   -7944.6692    2070.7944 
+   80000     278.4149    57.127904    23173.715   -7325.9746    648.15342   -7974.1281    2169.1944 
+   85000    287.12872    449.61008    23477.625    -7292.639    668.43928   -7961.0783    2333.2577 
+   90000    267.81091   -444.04366    23194.287   -7348.6446    623.46718   -7972.1118    2460.7934 
+   95000    273.61657   -167.61039     23486.76   -7262.9078    636.98283   -7899.8906    2619.7682 
+  100000    287.17495   -116.08569    23369.504   -7246.7449    668.54691   -7915.2918    2755.1717 
+  100475     277.8966    -21.18784    23307.699   -7306.2083     646.9468   -7953.1551    2773.2967 
+Loop time of 42.6993 on 12 procs for 100000 steps with 782 atoms
+
+Performance: 2023.452 ns/day, 0.012 hours/ns, 2341.958 timesteps/s
+98.4% CPU use with 12 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 30.18      | 30.534     | 30.905     |   4.9 | 71.51
+Neigh   | 1.6567     | 1.7174     | 1.8946     |   5.0 |  4.02
+Comm    | 7.6954     | 8.1165     | 8.5497     |  10.3 | 19.01
+Output  | 0.0075402  | 0.0076572  | 0.0089083  |   0.4 |  0.02
+Modify  | 1.8024     | 1.854      | 1.9105     |   2.6 |  4.34
+Other   |            | 0.4694     |            |       |  1.10
+
+Nlocal:    65.1667 ave 69 max 59 min
+Histogram: 1 0 0 1 1 1 3 0 2 3
+Nghost:    472.917 ave 484 max 466 min
+Histogram: 2 0 3 4 0 1 0 0 1 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 12 0 0 0 0 0 0 0 0 0
+FullNghs:  2191.17 ave 2310 max 1970 min
+Histogram: 1 0 1 0 1 1 3 0 1 4
+
+Total # of neighbors = 26294
+Ave neighs/atom = 33.624
+Neighbor list builds = 12368
+Dangerous builds = 0
+
+undump              1
+unfix               2
+unfix               3
+unfix               4
+
+
+################################################
+#######         Run Simulation         #########
+################################################
+
+reset_timestep      0
+log                 log.run_${NAME}
+log                 log.run_setup_atoms_280K_01

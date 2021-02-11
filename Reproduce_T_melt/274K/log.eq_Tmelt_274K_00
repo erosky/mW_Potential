@@ -1,0 +1,115 @@
+
+# Import phase coexistance setup
+#
+read_data           data.ice_water
+  orthogonal box = (-0.00608739 -0.00383162 -0.00383162) to (49.6981 31.2817 31.2817)
+  5 by 1 by 2 MPI processor grid
+  reading atoms ...
+  1529 atoms
+  reading velocities ...
+  1529 velocities
+
+# Define potential
+#
+pair_style 	    sw
+pair_coeff	    * * mW_real.sw mW
+Reading potential file mW_real.sw with DATE: 2019-02-27
+
+# Reset velocity/set timestep
+#
+velocity	    all create ${TEMP} 120598 rot yes dist gaussian
+velocity	    all create 274 120598 rot yes dist gaussian
+timestep	    10.0
+
+# Define output
+#
+compute	            1 all msd
+thermo              50
+thermo_style        custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+#
+neigh_modify        delay 0 every 1 check yes
+
+# Set fixes
+#
+fix                 1 all momentum 10 linear 1 1 1 rescale
+fix                 2 all nve
+fix                 3 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix                 3 all temp/csvr 274 ${TEMP} 500.0 928347
+fix                 3 all temp/csvr 274 274 500.0 928347
+fix                 4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+fix                 4 all press/berendsen iso 0 ${PRES} 1000.0 modulus 20000
+fix                 4 all press/berendsen iso 0 0 1000.0 modulus 20000
+
+# Run very short equilibration
+#
+dump		    1 all atom 50 eq.${NAME}.dump
+dump		    1 all atom 50 eq.Tmelt_274K_00.dump
+run	            500
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 6.3065
+  ghost atom cutoff = 6.3065
+  binsize = 3.15325, bins = 16 10 10
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.089 | 4.127 | 4.462 Mbytes
+Step Temp Press Volume TotEng KinEng PotEng c_1[4] 
+       0          274    128.66953    48649.839   -14256.104    1247.9817   -15504.086            0 
+      50    318.09642   -384.47379    47937.273   -14508.208    1448.8267   -15957.035    1.7546244 
+     100    302.18706   -213.28722    47342.814   -14662.994    1376.3647   -16039.359    3.5723779 
+     150    285.06086   -128.44041    46988.996   -14833.904    1298.3604   -16132.265    5.1299937 
+     200    293.88236   -51.201487    46805.596   -14934.746    1338.5394   -16273.286    6.5648159 
+     250    294.02074   -323.97654    46622.721   -15019.724    1339.1697   -16358.894    7.8598089 
+     300    284.19539   -219.09912    46598.075   -15026.702    1294.4184   -16321.121    8.6616374 
+     350    285.22003    128.40877    46674.437   -15053.479    1299.0853   -16352.564    9.6326921 
+     400    277.76196    28.631469    46591.303   -15111.919    1265.1162   -16377.035    10.651133 
+     450    285.42653   -15.502565    46620.707   -15124.367    1300.0259   -16424.393    11.305242 
+     500     272.9034    -82.71913    46577.283   -15153.645    1242.9871   -16396.632    11.950987 
+Loop time of 0.398529 on 10 procs for 500 steps with 1529 atoms
+
+Performance: 1083.988 ns/day, 0.022 hours/ns, 1254.615 timesteps/s
+98.5% CPU use with 10 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.19676    | 0.27017    | 0.3387     |   9.3 | 67.79
+Neigh   | 0.015582   | 0.02042    | 0.022697   |   1.5 |  5.12
+Comm    | 0.024447   | 0.075328   | 0.1445     |  12.7 | 18.90
+Output  | 0.003299   | 0.0033604  | 0.0037923  |   0.2 |  0.84
+Modify  | 0.0073311  | 0.026525   | 0.071557   |  15.2 |  6.66
+Other   |            | 0.002722   |            |       |  0.68
+
+Nlocal:    152.9 ave 156 max 150 min
+Histogram: 2 1 0 1 0 2 1 0 2 1
+Nghost:    751.7 ave 770 max 741 min
+Histogram: 1 3 1 1 1 1 1 0 0 1
+Neighs:    0 ave 0 max 0 min
+Histogram: 10 0 0 0 0 0 0 0 0 0
+FullNghs:  4967 ave 5223 max 4749 min
+Histogram: 2 0 0 3 1 1 1 1 0 1
+
+Total # of neighbors = 49670
+Ave neighs/atom = 32.4853
+Neighbor list builds = 70
+Dangerous builds = 0
+
+reset_timestep      0
+undump              1
+unfix               2
+unfix               3
+unfix               4
+
+################################################
+#######         Run Simulation         #########
+################################################
+
+log                 log.run_${NAME}
+log                 log.run_Tmelt_274K_00

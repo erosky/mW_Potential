@@ -1,0 +1,34 @@
+
+# Define the lattice
+variable	lattice_constant equal 3.90859
+lattice		bcc ${lattice_constant}
+lattice		bcc 3.90859
+Lattice spacing in x,y,z = 3.90859 3.90859 3.90859
+
+# Define region
+# multiples of lattice spacing
+region 		simbox block 0 5 0 5 0 5
+
+# Create Atoms
+create_box 	1 simbox
+Created orthogonal box = (0 0 0) to (19.5429 19.5429 19.5429)
+  1 by 2 by 5 MPI processor grid
+create_atoms 	1 box
+Created 250 atoms
+  Time spent = 0.000430107 secs
+mass		1 18.015
+
+compute 		1 all orientorder/atom
+
+
+# Neighbor lists
+
+neigh_modify    delay 0 every 1 check yes
+
+dump 		    2 all custom 200 dump.${simname} id type x y z c_1[*]
+dump 		    2 all custom 200 dump.bcc_lattice_test id type x y z c_1[*]
+
+run		5000
+WARNING: No fixes defined, atoms won't move (../verlet.cpp:55)
+ERROR: Compute orientorder/atom requires a pair style be defined (../compute_orientorder_atom.cpp:162)
+Last command: run		5000

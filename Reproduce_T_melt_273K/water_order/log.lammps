@@ -1,0 +1,50 @@
+LAMMPS (12 Dec 2018)
+# GAME PLAN
+# fill box with randomly distributed atoms
+# pressure should be at 0
+# equilibrate at 280K for 1ns
+# verify equilibrium by lookig at potential energy
+# cut out half the atoms
+# fill in void with ice data
+# remove overlaps
+# hold ice fixed while equilibrating water for 1ns at 280K
+
+
+
+variable            NAME string setup_atoms_280K_01
+variable            TEMP string 280
+variable            PRES string 0
+variable            TDAMP string 1000.0
+variable            PDAMP string 2500.0
+
+
+## Ice Seed volumetric data:
+#
+# -1.0216408247826259e-01 2.4920164082478134e+01 xlo xhi
+# -1.2770510309773897e-01 3.1150205103097296e+01 ylo yhi
+# -1.2770510309773897e-01 3.1150205103097296e+01 zlo zhi
+#
+variable            ICE_XLO equal -1.0216408247826259e-01
+variable            ICE_XHI equal 2.4920164082478134e+01
+variable            ICE_LO equal -1.2770510309773897e-01
+variable            ICE_HI equal 3.1150205103097296e+01
+variable            ICE_WIDTH equal v_ICE_HI-v_ICE_LO
+variable            ICE_LEN equal v_ICE_XHI-v_ICE_XLO
+
+## Set Simulation Box Size
+#
+variable            WIDTH equal v_ICE_WIDTH
+variable            LEN equal v_ICE_LEN
+
+## Real units, atomic atom style (no bonded interactions)
+#
+units               real
+atom_style          atomic
+
+
+################################################
+#######    Equilibrate Liquid Water    #########
+################################################
+
+log                 log.${NAME}.eq_water
+log                 log.setup_atoms_280K_01.eq_water

@@ -1,0 +1,65 @@
+# mW_liquid.in
+# Basic simulation to develop the mW model from SW Potential
+variable 	simname index testing
+
+clear
+units		metal
+dimension	3
+boundary	p p p
+atom_style	atomic
+
+log 		${simname}.log
+
+# Define the lattice
+variable	lattice_constant equal 6.2045
+lattice		diamond ${lattice_constant}
+
+# Define region
+# multiples of lattice spacing
+region 		simbox block 0 5 0 5 0 5
+
+# Create Atoms
+create_box 	1 simbox
+create_atoms 	1 box
+mass		1 18.015
+
+velocity	all create 298.0 120598 rot yes dist gaussian
+
+# Define Interatomic Potential
+pair_style	sw
+pair_coeff	* * mW_metal.sw mW
+
+neighbor 	2.0 bin
+neigh_modify	delay 10 check no
+
+# Pressure computations
+compute		1 all msd
+compute		total_press all pressure thermo_temp
+compute		peratom all stress/atom NULL
+compute		p all reduce sum c_peratom[1] c_peratom[2] c_peratom[3]
+variable	press equal -(c_p[1]+c_p[2]+c_p[3])/(3*vol)
+
+# Density computations
+variable	total_mass equal mass(all)
+variable	v equal vol
+print 		${total_mass}
+print		$v
+
+variable 	density equal v_total_mass/(v_v*18.015)
+print 		${density}
+
+
+# Run equilibration
+thermo_style	custom step temp ke pe c_total_press v_press c_1[4]
+thermo		10
+dump		1 all atom 10 ${simname}.dump
+
+fix             1 all momentum 10 linear 1 1 1 rescale
+fix 		2 all nve
+fix             3 all temp/csvr 298.0 298.0 500.0 928347
+fix             4 all press/berendsen iso 1 1 1000.0 modulus 20000
+timestep	0.005
+run		100000
+
+
+

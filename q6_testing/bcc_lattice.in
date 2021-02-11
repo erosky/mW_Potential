@@ -1,0 +1,36 @@
+# mW_liquid.in
+# Basic simulation to develop the mW model from SW Potential
+
+variable 	simname index bcc_lattice_test
+
+clear
+units		metal
+dimension	3
+boundary	p p p
+atom_style	atomic
+
+log 		${simname}.log
+
+# Define the lattice
+variable	lattice_constant equal 3.90859
+lattice		bcc ${lattice_constant}
+
+# Define region
+# multiples of lattice spacing
+region 		simbox block 0 5 0 5 0 5
+
+# Create Atoms
+create_box 	1 simbox
+create_atoms 	1 box
+mass		1 18.015
+
+compute 		1 all orientorder/atom
+
+
+# Neighbor lists
+
+neigh_modify    delay 0 every 1 check yes
+
+dump 		    2 all custom 200 dump.${simname} id type x y z c_1[*]
+
+run		5000

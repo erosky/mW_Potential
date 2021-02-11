@@ -1,0 +1,97 @@
+# Simulation of monatomic water
+# Real units, atomic atom style (no bonded interactions)
+
+variable        NAME string liquid_box_228K
+variable        TEMP string 28
+variable        PRES string 1
+variable        TCOUPL string 5000.0
+variable        PCOUPL string 10000.0
+
+units	   	    real
+atom_style 	    atomic
+log		        log.${NAME}
+
+# Create simulation box and atoms
+lattice		    sc 1
+region 		    all block 0 50 0 50 0 50 units box
+create_box 	    1 all 
+
+create_atoms	1 random 4096 63782 all
+
+mass		    1 18.015
+
+# Define potential
+
+pair_style 	    sw
+pair_coeff	    * * mW_real.sw mW
+
+# Run minimization and output files 
+
+minimize 	    1.0e-8 1.0e-8 10000 1000
+write_restart	min.${NAME}.rst
+write_data      min.${NAME}.data
+
+# Equilibration of molecular water
+
+# Add velocity/set timestep
+
+velocity	    all create ${TEMP} 120598 rot yes dist gaussian
+timestep	    5.0
+
+# Define output
+compute			1 all msd
+
+thermo	    	50
+thermo_style	custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+
+neigh_modify    delay 0 every 1 check yes
+
+# Set fixes
+
+fix             1 all momentum 10 linear 1 1 1 rescale
+fix             2 all nve
+fix             3 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix             4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+
+# Run 1 ns equilibration
+
+#dump		    1 all xtc 2000 eq.${NAME}-p1t${TEMP}.xtc
+dump		    1 all atom 1000 eq.${NAME}-p1t${TEMP}.dump
+
+reset_timestep  0 
+
+run	            200000
+write_restart   eq.${NAME}-p1t${TEMP}.rst
+
+undump          1
+
+reset_timestep  0 
+
+unfix           2
+unfix           3
+unfix           4
+
+
+# compute mean square displacement
+compute			2 all msd
+
+thermo	    	50
+thermo_style	custom step temp press vol etotal ke pe c_2[4]
+
+#dump		    1 all xtc 2000 prod.${NAME}-p1t${TEMP}.xtc
+dump		    1 all atom 1000 prod.${NAME}-p1t${TEMP}.dump
+
+# Set fixes
+
+fix             2 all nph iso ${PRES} ${PRES} ${PCOUPL} 
+fix             3 all temp/csvr ${TEMP} ${TEMP} ${TCOUPL} 837492
+
+# Run 5 ns simulation p = 1 atm, T = 228 K
+
+#run	            1000000
+run					100000
+write_data      data.liquid_box
+write_restart   prod.${NAME}-p1t${TEMP}.rst
+
