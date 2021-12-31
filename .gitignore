@@ -1,5 +1,6 @@
 # exclude dump files as they are way too large
 *.dump
+dump.*
 
 # exclude symbolic links to lammps software
 lmp_mpi
