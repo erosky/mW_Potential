@@ -1,0 +1,105 @@
+# GAME PLAN
+# mW, Molinero et al
+# fill box with randomly distributed atoms
+# pressure should be at 1 atm
+# density of 0.0333557849 N/A^3
+# equilibrate at 298K for 1ns
+# verify equilibrium by lookig at potential energy
+# measure density, self-diffusion, and order params
+
+
+
+variable            NAME string liquid_274K_500atm_mW
+variable            TEMP string 274
+variable            PRES string -500
+variable       	    TCOUPL string 5000.0
+variable            PCOUPL string 10000.0
+variable            TDAMP string 1000.0
+variable            PDAMP string 2500.0
+
+
+
+## Real units, atomic atom style (no bonded interactions)
+#
+units               real
+atom_style          atomic
+
+
+################################################
+#######    Equilibrate Liquid Water    #########
+################################################      
+
+log                 log.eq_${NAME}
+
+# Create simulation box of size 50 x 50 x 50 Angstrom
+#
+lattice	            sc 1
+region 	            all block 0 50 0 50 0 50 units box
+create_box          1 all 
+
+# fill box with 4169 randomly distributed atoms
+#
+create_atoms        1 random 4169 63782 all
+mass                1 18.015
+
+# Define potential
+#
+pair_style          sw
+pair_coeff          * * mW_real.sw mW
+
+# Run minimization
+#
+minimize            1.0e-8 1.0e-8 10000 1000
+
+# Add velocity/set timestep
+#
+velocity            all create ${TEMP} 120598 rot yes dist gaussian
+timestep            5.0
+
+# Define output
+#
+compute	            1 all msd
+thermo	            100
+thermo_style        custom step temp press vol etotal ke pe c_1[4] density
+
+# Neighbor lists
+#
+neigh_modify        delay 0 every 1 check yes
+
+# Set fixes
+#
+fix                 1 all momentum 10 linear 1 1 1 rescale
+fix                 2 all nve
+fix                 3 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix                 4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+
+# Run 0.5 ns equilibration
+#
+dump                1 all custom 1000 eq.${NAME}.dump id type x y z vx vy vz
+run                 100000
+
+undump              1
+unfix               2
+unfix               3
+unfix               4
+
+
+################################################
+#######         Run Simulation         #########
+################################################  
+
+reset_timestep      0
+log                 log.run_${NAME}
+
+# Set production fixes - Nose/Hoover
+#
+fix                 2 all nph iso ${PRES} ${PRES} ${PCOUPL} 
+fix                 3 all temp/csvr ${TEMP} ${TEMP} ${TCOUPL} 837492
+
+# compute order parameter
+compute             2 all orientorder/atom nnn NULL cutoff 3.5
+
+# Run 1ns simulation
+thermo	            200
+dump		        1 all custom 400 prod.${NAME}.dump id type x y z vx vy vz c_2[*]
+run                 200000

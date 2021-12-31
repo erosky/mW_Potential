@@ -1,0 +1,94 @@
+# Ice Seed 228K
+# Place a cube of equilibrated ice at 228K into a block of supercooled 228K water 
+# Real units, atomic atom style (no bonded interactions), mW Potential
+
+variable        NAME string 228K_q6_ice_2
+variable        TEMP string 228
+variable        PRES string 1
+variable        TCOUPL string 5000.0
+variable        PCOUPL string 10000.0
+
+units	   	    real
+atom_style 	    atomic
+log		    log.${NAME}
+
+
+## Load water molecules from data file
+read_data	data.liquid_box group water extra/atom/types 1
+
+
+## Water box volumetric data:
+
+# 1.1029689232492146e-01 4.9889703107673952e+01 xlo xhi
+# 1.1029689232492146e-01 4.9889703107673952e+01 ylo yhi
+# 1.1029689232492146e-01 4.9889703107673952e+01 zlo zhi
+variable WAT_LO equal 1.1029689232492146e-01
+variable WAT_HI equal 4.9889703107673952e+01
+
+## Ice Seed volumetric data:
+
+# -1.3037346316586529e-01 3.1152873463165356e+01 xlo xhi
+# -1.3037346316586529e-01 3.1152873463165356e+01 ylo yhi
+# -1.3037346316586529e-01 3.1152873463165356e+01 zlo zhi
+variable ICE_LO equal -1.3037346316586529e-01
+variable ICE_HI equal 3.1152873463165356e+01
+variable ICE_WIDTH equal v_ICE_HI-v_ICE_LO
+
+
+## Delete water molecules from region where ice seed will be placed
+
+region seed block ${WAT_LO} ${ICE_WIDTH} ${WAT_LO} ${ICE_WIDTH} ${WAT_LO} ${ICE_WIDTH}
+delete_atoms region seed compress yes
+
+
+## Load Ice seed from data file
+variable SHIFT equal v_WAT_LO-v_ICE_LO
+read_data data.ice_box add append offset 1 0 0 0 0 shift ${SHIFT} ${SHIFT} ${SHIFT} group ice
+
+## Define potential
+
+pair_style 	    sw
+pair_coeff	    * * mW_real.sw mW mW
+
+## Delete water and ice atoms that are overlapping
+delete_atoms overlap 2.5 water ice
+
+
+## Equilibrate contact point
+
+
+## Run 
+timestep	    5.0
+
+compute			1 all msd
+compute 		2 all orientorder/atom
+
+thermo	    	50
+thermo_style	custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+
+neigh_modify    delay 0 every 1 check yes
+
+# Set fixes
+
+fix             1 all momentum 10 linear 1 1 1 rescale
+fix             2 ice nve
+fix		3 water nve
+fix             4 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix             5 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+
+# Run 0.5 ns equilibration
+
+#dump		    1 all xtc 2000 eq.${NAME}-p1t${TEMP}.xtc
+dump		    1 all atom 200 eq.${NAME}-p1t${TEMP}.dump
+dump 		    2 all custom 200 dump.${NAME} id type x y z vx vy vz fx fy fz c_2[*]
+dump		    3 all image 50 movies/test_5/test-movie.*.ppm c_2[1] type box no 0.0 ssao yes 3333333 0.4 view 135.0 0.0
+dump_modify	    3 pad 5
+
+#write_data      data.add_ice_test
+
+run	            100000
+
+
+

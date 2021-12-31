@@ -1,0 +1,15 @@
+LAMMPS (12 Dec 2018)
+# Ice Seed 228K
+# Place a cube of equilibrated ice at 228K into a block of supercooled 228K water
+# Real units, atomic atom style (no bonded interactions), mW Potential
+
+variable        NAME string 228K_q6_ice_2
+variable        TEMP string 228
+variable        PRES string 1
+variable        TCOUPL string 5000.0
+variable        PCOUPL string 10000.0
+
+units	   	    real
+atom_style 	    atomic
+log		    log.${NAME}
+log		    log.228K_q6_ice_2

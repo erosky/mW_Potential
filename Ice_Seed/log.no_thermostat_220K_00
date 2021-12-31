@@ -1,0 +1,57 @@
+
+# Create the simulation box
+variable	lattice_constant equal 6.2045
+lattice		diamond ${lattice_constant}
+lattice		diamond 6.2045
+Lattice spacing in x,y,z = 6.2045 6.2045 6.2045
+region 		    box block 0 50 0 50 0 50 units box
+create_box 	    3 box
+Created orthogonal box = (0 0 0) to (50 50 50)
+  1 by 2 by 5 MPI processor grid
+
+mass		    1 18.015
+mass		    2 18.015
+
+# Define potential
+
+pair_style 	    sw
+pair_coeff	    * * mW_real.sw mW mW mW
+Reading potential file mW_real.sw with DATE: 2019-02-27
+
+# Define groups
+
+## ice
+region	     1 block 0 50 0 50 0 25 units box
+create_atoms    1 region 1
+Created 2325 atoms
+  Time spent = 0.000519514 secs
+group	     ice region 1
+2325 atoms in group ice
+set	     group ice type 1
+  2325 settings made for type
+
+## water
+region	     2 block 0 50 0 50 25 50 units box
+create_atoms	2 random 2048 63782 2
+Created 2048 atoms
+  Time spent = 0.000399351 secs
+group	     water region 2
+2048 atoms in group water
+set	     group water type 2
+  2048 settings made for type
+
+
+# Run minimization and output files
+
+# minimize 	    1.0e-8 1.0e-8 10000 1000
+# write_restart	min.${NAME}.rst
+# write_data      min.${NAME}.data
+
+# Equilibration of molecular water
+
+# Add velocity/set timestep
+
+velocity	    water create ${TEMP} 120598 rot yes dist gaussian
+velocity	    water create 220 120598 rot yes dist gaussian
+ERROR: Not all per-type masses are set (../velocity.cpp:63)
+Last command: velocity	    water create ${TEMP} 120598 rot yes dist gaussian

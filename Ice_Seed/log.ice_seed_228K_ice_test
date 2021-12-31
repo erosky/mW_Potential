@@ -1,0 +1,114 @@
+
+
+# Load water molecules from data file
+read_data	data.liquid_box group water
+  orthogonal box = (0.110297 0.110297 0.110297) to (49.8897 49.8897 49.8897)
+  1 by 2 by 5 MPI processor grid
+  reading atoms ...
+  4096 atoms
+  reading velocities ...
+  4096 velocities
+
+mass		    1 18.015
+
+# Define potential
+
+pair_style 	    sw
+pair_coeff	    * * mW_real.sw mW
+Reading potential file mW_real.sw with DATE: 2019-02-27
+
+
+# Water box volumetric data:
+
+# 1.1029689232492146e-01 4.9889703107673952e+01 xlo xhi
+# 1.1029689232492146e-01 4.9889703107673952e+01 ylo yhi
+# 1.1029689232492146e-01 4.9889703107673952e+01 zlo zhi
+variable WAT_LO equal 1.1029689232492146e-01
+variable WAT_HI equal 4.9889703107673952e+01
+
+# Ice Seed volumetric data:
+
+# -1.3037346316586529e-01 3.1152873463165356e+01 xlo xhi
+# -1.3037346316586529e-01 3.1152873463165356e+01 ylo yhi
+# -1.3037346316586529e-01 3.1152873463165356e+01 zlo zhi
+variable ICE_LO equal -1.3037346316586529e-01
+variable ICE_HI equal 3.1152873463165356e+01
+variable ICE_WIDTH equal v_ICE_HI-v_ICE_LO
+
+
+# Delete water molecules from region where ice seed will be placed
+
+region seed block ${WAT_LO} ${ICE_WIDTH} ${WAT_LO} ${ICE_WIDTH} ${WAT_LO} ${ICE_WIDTH}
+region seed block 0.110296892324921 ${ICE_WIDTH} ${WAT_LO} ${ICE_WIDTH} ${WAT_LO} ${ICE_WIDTH}
+region seed block 0.110296892324921 31.2832469263313 ${WAT_LO} ${ICE_WIDTH} ${WAT_LO} ${ICE_WIDTH}
+region seed block 0.110296892324921 31.2832469263313 0.110296892324921 ${ICE_WIDTH} ${WAT_LO} ${ICE_WIDTH}
+region seed block 0.110296892324921 31.2832469263313 0.110296892324921 31.2832469263313 ${WAT_LO} ${ICE_WIDTH}
+region seed block 0.110296892324921 31.2832469263313 0.110296892324921 31.2832469263313 0.110296892324921 ${ICE_WIDTH}
+region seed block 0.110296892324921 31.2832469263313 0.110296892324921 31.2832469263313 0.110296892324921 31.2832469263313
+delete_atoms region seed compress yes
+Deleted 1013 atoms, new total = 3083
+
+
+# Load Ice seed from data file
+variable SHIFT equal v_WAT_LO-v_ICE_LO
+read_data data.ice_box add append shift ${SHIFT} ${SHIFT} ${SHIFT} group ice
+read_data data.ice_box add append shift 0.240670355490786 ${SHIFT} ${SHIFT} group ice
+read_data data.ice_box add append shift 0.240670355490786 0.240670355490786 ${SHIFT} group ice
+read_data data.ice_box add append shift 0.240670355490786 0.240670355490786 0.240670355490786 group ice
+  orthogonal box = (0.110297 0.110297 0.110297) to (49.8897 49.8897 49.8897)
+  1 by 2 by 5 MPI processor grid
+  reading atoms ...
+  1000 atoms
+  reading velocities ...
+  1000 velocities
+
+# Run
+timestep	    5.0
+
+compute			1 all msd
+
+thermo	    	50
+thermo_style	custom step temp press vol etotal ke pe c_1[4]
+
+# Neighbor lists
+
+neigh_modify    delay 0 every 1 check yes
+
+# Set fixes
+
+fix             1 all momentum 10 linear 1 1 1 rescale
+fix             2 all nve
+fix             3 all temp/csvr ${TEMP} ${TEMP} 500.0 928347
+fix             3 all temp/csvr 228 ${TEMP} 500.0 928347
+fix             3 all temp/csvr 228 228 500.0 928347
+fix             4 all press/berendsen iso ${PRES} ${PRES} 1000.0 modulus 20000
+fix             4 all press/berendsen iso 1 ${PRES} 1000.0 modulus 20000
+fix             4 all press/berendsen iso 1 1 1000.0 modulus 20000
+
+# Run 1 ns equilibration
+
+#dump		    1 all xtc 2000 eq.${NAME}-p1t${TEMP}.xtc
+dump		    1 all atom 1000 eq.${NAME}-p1t${TEMP}.dump
+dump		    1 all atom 1000 eq.ice_seed_228K_ice_test-p1t${TEMP}.dump
+dump		    1 all atom 1000 eq.ice_seed_228K_ice_test-p1t228.dump
+
+write_data      data.add_ice_test
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 6.3065
+  ghost atom cutoff = 6.3065
+  binsize = 3.15325, bins = 16 16 16
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+
+run	            100000
+Per MPI rank memory allocation (min/avg/max) = 4.276 | 4.278 | 4.28 Mbytes
+Step Temp Press Volume TotEng KinEng PotEng c_1[4] 
+       0    74.983751    18645.305    123352.84   -26052.899    912.37729   -26965.277            0 
+ERROR: Lost atoms: original 4083 current 4079 (../thermo.cpp:441)
+Last command: run	            100000

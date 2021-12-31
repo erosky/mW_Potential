@@ -6,10 +6,11 @@ import sys
 from scipy import *
 from scipy.optimize import curve_fit
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 # Unit conversion function
-atoms = 1000
+atoms = 4096
 mass_atom = 18.015/(6.02214*(10**23))
 timestep = 5
 def real2SI(metric, value):
@@ -35,10 +36,10 @@ print(datafile)
 # Load Data from input file
 output = open(outputfile,'w')
 
-data = loadtxt(datafile)
+data = np.loadtxt(datafile)
 
 # Ryan Eq
-step, temp, pressure, volume, etotal, ke, pe, msd = transpose(data)
+step, temp, pressure, volume, etotal, ke, pe, msd = np.transpose(data)
 
 # nvt Eq
 #step, temp, ke, pe, pressure, msd = transpose(data)
@@ -50,9 +51,9 @@ for v in volume:
 
 
 # Calculate Averages
-temp_avg = sum(temp)/len(temp)
-pressure_avg = sum(pressure)/len(pressure)
-density_avg = sum(density)/len(density)
+temp_avg = np.sum(temp)/len(temp)
+pressure_avg = np.sum(pressure)/len(pressure)
+density_avg = np.sum(density)/len(density)
 
 
 # Calculate Standard Dev
@@ -97,8 +98,8 @@ print (perr)
 
 
 
-pyplot.plot(time, msd_SI)
-show()
+plt.plot(time, msd_SI)
+plt.show()
 
 
 
